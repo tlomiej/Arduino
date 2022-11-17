@@ -4,14 +4,22 @@ int motor1pin2 = 3;
 int motor2pin1 = 4;
 int motor2pin2 = 5;
 
+int ENA_pin = 10;
+int ENB_pin = 11;
+
+int TURBO = 255;
+int ECO = 200;
+int SLOW = 80;
+int FORWARD_EN = 200;
+
 char command;
 
 /* czyjnik odległości */
-int Trig = 9;  //pin 2 Arduino połączony z pinem Trigger czujnika
-int Echo = 8;  //pin 3 Arduino połączony z pinem Echo czujnika
-int CM;        //odległość w cm
-long CZAS;     //długość powrotnego impulsu w uS
-int barrier = 0; //0 brak, 1 jest 
+int Trig = 9;     //pin 2 Arduino połączony z pinem Trigger czujnika
+int Echo = 8;     //pin 3 Arduino połączony z pinem Echo czujnika
+int CM;           //odległość w cm
+long CZAS;        //długość powrotnego impulsu w uS
+int barrier = 0;  //0 brak, 1 jest
 
 void setup() {
   Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
@@ -31,16 +39,16 @@ void setup() {
 void loop() {
 
   pomiarOleglosci();
-  
+
 
   Serial.flush();
   Serial.print(CM);
   Serial.print("WYnik");
 
-  if (CM < 10 and barrier == 0) {
-          barrier = 1;
-          Stop();
-        }
+  if (CM < 20 and barrier == 0) {
+    barrier = 1;
+    Stop();
+  }
 
   if (Serial.available() > 0) {
     pomiarOleglosci();  //pomiar odległości
@@ -51,18 +59,13 @@ void loop() {
 
     command = Serial.read();
 
-  
+
     Stop();  //initialize with motors stoped
-    //Change pin mode only if new command is different from previous.
-    //Serial.println(command);
+
     switch (command) {
       case 'F':
         Serial.print("Prosto");
-
-
-        forward();
-
-
+        forward(FORWARD_EN);
         barrier = 0;
 
         break;
@@ -80,15 +83,18 @@ void loop() {
         Stop();
         break;
 
-      case 'X':
-        forward();
-        delayMicroseconds(2000);
-        left();
-        delayMicroseconds(500);
-        forward();
-        delayMicroseconds(3000);
-        Stop();
+      case 'T':
+        FORWARD_EN = 255;
         break;
+
+      case 'E':
+        FORWARD_EN = 200;
+        break;
+
+      case 'X':
+        FORWARD_EN = 80;
+        break;
+
     }
   }
 }
@@ -109,9 +115,12 @@ void pomiarOleglosci() {
 }
 
 
-void forward() {
+void forward(int FORWARD_EN) {
+  analogWrite(ENA_pin, FORWARD_EN);
+  analogWrite(ENB_pin, FORWARD_EN);
   digitalWrite(motor1pin1, HIGH);
   digitalWrite(motor1pin2, LOW);
+
 
   digitalWrite(motor2pin1, HIGH);
   digitalWrite(motor2pin2, LOW);
@@ -120,6 +129,8 @@ void forward() {
 }
 
 void back() {
+  analogWrite(ENA_pin, 100);
+  analogWrite(ENB_pin, 100);
   digitalWrite(motor1pin1, LOW);
   digitalWrite(motor1pin2, HIGH);
 
@@ -138,7 +149,7 @@ void left() {
 }
 
 void right() {
- digitalWrite(motor1pin1, LOW);
+  digitalWrite(motor1pin1, LOW);
   digitalWrite(motor1pin2, HIGH);
 
   digitalWrite(motor2pin1, HIGH);
